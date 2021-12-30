@@ -1,0 +1,5 @@
+LoRaCom KEYWORD1
+send    KEYWORD2
+receive KEYWORD2
+connect KEYWORD2
+get_device_eui KEYWORD2
