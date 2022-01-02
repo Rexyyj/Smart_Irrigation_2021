@@ -1,6 +1,6 @@
 #include "LoRaCom.h"
 
-LoRaCom::LoRaCom(String appKey,String appEui)
+LoRaCom::LoRaCom(String appEui,String appKey)
 {
     _appKey = appKey;
     _appEui = appEui;
@@ -23,11 +23,12 @@ void LoRaCom::connect(){
     _deviceEui = _modem.deviceEUI();
     
 
-    _appEui.trim();
-    _appKey.trim();
-    connection = _modem.joinOTAA(_appEui, _appKey);
+    // _appEui.trim();
+    // _appKey.trim();
+    // Serial.println(_appEui);
+    // Serial.println(_appKey);
 
-    if (!connection){
+    if (!_modem.joinOTAA(_appEui, _appKey)){
         status = false;
         errorMsg="Connection error";
     }else{

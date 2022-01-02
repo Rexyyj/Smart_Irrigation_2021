@@ -11,7 +11,7 @@ class LoRaCom
         String errorMsg;
         int connection;
 
-        LoRaCom(String appKey,String appEui);
+        LoRaCom(String appEui,String appKey);
         void connect();
         String send(String data);
         String receive(String data);
