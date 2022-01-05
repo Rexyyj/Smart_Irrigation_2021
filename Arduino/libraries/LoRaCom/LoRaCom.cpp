@@ -42,21 +42,45 @@ String LoRaCom::get_device_eui(){
     return _deviceEui;
 }
 
-String LoRaCom::send(String data){
+bool LoRaCom::send(String data){
     int err;
     if (status == true){
         _modem.beginPacket();
         _modem.print(data);
         err = _modem.endPacket(true);
         if (err >0){
-            return "success";
+            return true;
         }else{
-            return "send error";
+            return false;
         }
     }else{
-        return "status error";
+        return false;
     }
 }
+
+bool LoRaCom::send(float data){
+    int err;
+    byte dataArray[4] = {
+      ((uint8_t*)&data)[0],
+      ((uint8_t*)&data)[1],
+      ((uint8_t*)&data)[2],
+      ((uint8_t*)&data)[3]
+   };
+
+    if (status == true){
+        _modem.beginPacket();
+        _modem.write(dataArray,sizeof(dataArray));
+        err = _modem.endPacket(true);
+        if (err >0){
+            return true;
+        }else{
+            return false;
+        }
+    }else{
+        return false;
+    }
+}
+
 
 String LoRaCom::receive(String data){
     return "";

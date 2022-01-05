@@ -13,7 +13,8 @@ class LoRaCom
 
         LoRaCom(String appEui,String appKey);
         void connect();
-        String send(String data);
+        bool send(String data);
+        bool send(float data);
         String receive(String data);
         String get_device_eui();
     private:

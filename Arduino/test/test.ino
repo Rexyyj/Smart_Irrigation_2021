@@ -1,5 +1,5 @@
 #include <LoRaCom.h>
-
+#include <VariableTimedAction.h>
 
 String appEui = "0000000000000000";
 String appKey = "7782AD611823290CC281D369A2C5FBB9";
@@ -25,7 +25,9 @@ void setup() {
 
 void loop() {
   bool tmp;
-  tmp = lora.send("Hello ");
+  tmp = lora.send(13.45);
   // lora.receive("world");
   delay(10000);
+  
 }
+
