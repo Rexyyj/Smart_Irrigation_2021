@@ -83,12 +83,14 @@ bool LoRaCom::send(float data){
 
 bool LoRaCom::send_temp_mois(uint8_t id, float temperature, float mosisture){
     int err;
-    byte dataArray[9] = {
+    byte dataArray[11] = {
         id,
+        uint8_t type=0x01,
       ((uint8_t*)&temperature)[0],
       ((uint8_t*)&temperature)[1],
       ((uint8_t*)&temperature)[2],
       ((uint8_t*)&temperature)[3],
+        uint8_t type=0x02,
       ((uint8_t*)&mosisture)[0],
       ((uint8_t*)&mosisture)[1],
       ((uint8_t*)&mosisture)[2],
