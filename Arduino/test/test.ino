@@ -25,7 +25,7 @@ void setup() {
 
 void loop() {
   bool tmp;
-  tmp = lora.send(13.45);
+  tmp = lora.send("hello");
   // lora.receive("world");
   delay(10000);
   

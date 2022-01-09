@@ -15,6 +15,7 @@ class LoRaCom
         void connect();
         bool send(String data);
         bool send(float data);
+        bool send_temp_mois(uint8_t id, float temperature, float mosisture);
         String receive(String data);
         String get_device_eui();
     private:

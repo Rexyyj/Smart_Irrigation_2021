@@ -81,6 +81,36 @@ bool LoRaCom::send(float data){
     }
 }
 
+bool LoRaCom::send_temp_mois(uint8_t id, float temperature, float mosisture){
+    int err;
+    byte dataArray[11] = {
+        id,
+        0x01,
+      ((uint8_t*)&temperature)[0],
+      ((uint8_t*)&temperature)[1],
+      ((uint8_t*)&temperature)[2],
+      ((uint8_t*)&temperature)[3],
+        0x02,
+      ((uint8_t*)&mosisture)[0],
+      ((uint8_t*)&mosisture)[1],
+      ((uint8_t*)&mosisture)[2],
+      ((uint8_t*)&mosisture)[3]
+   };
+
+    if (status == true){
+        _modem.beginPacket();
+        _modem.write(dataArray,sizeof(dataArray));
+        err = _modem.endPacket(true);
+        if (err >0){
+            return true;
+        }else{
+            return false;
+        }
+    }else{
+        return false;
+    }
+}
+
 
 String LoRaCom::receive(String data){
     return "";
