@@ -1,9 +1,0 @@
-{
-  "broker": "eu1.cloud.thethings.network",
-  "port": 1883,
-  "Daily": "v3/arduino-lora-test-rex@ttn/devices/eui-a8610a32371b8001/down/replace",
-
-  "Monitor": "/Polito/SmartIrrigation22/monitoring",
-  "APIKey": "NNSXS.FKISJQE2Q6NGSKHDCGASYG44N52FAZQLJQ23JEI.HSNCKFSWTNZEUF4B7AL4RTNNJI2XQ7SCXM3UAA7HPV5DJHXB27IQ",
-  "Username": "arduino-lora-test-rex@ttn"
-}
