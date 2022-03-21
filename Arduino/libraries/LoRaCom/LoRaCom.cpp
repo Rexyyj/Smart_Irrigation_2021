@@ -6,7 +6,7 @@ LoRaCom::LoRaCom(String appEui,String appKey)
     _appEui = appEui;
 
 }
-
+bool type_c_flag=false;
 void LoRaCom::connect(){
         // Set up frequency band
     if (!_modem.begin(EU868)) {
@@ -22,9 +22,12 @@ void LoRaCom::connect(){
     
     _deviceEui = _modem.deviceEUI();
     
+    if (type_c_flag==true){
+         _modem.configureClass(CLASS_C);
+    }
 
-    // _appEui.trim();
-    // _appKey.trim();
+    _appEui.trim();
+    _appKey.trim();
     // Serial.println(_appEui);
     // Serial.println(_appKey);
 
@@ -35,6 +38,10 @@ void LoRaCom::connect(){
         status = true;
         _modem.setPort(3);
     }
+}
+
+void LoRaCom::change_to_class_C(){
+   type_c_flag=true;
 }
 
 
@@ -83,8 +90,9 @@ bool LoRaCom::send(float data){
 
 bool LoRaCom::send_temp_mois(uint8_t id, float temperature, float mosisture){
     int err;
-    byte dataArray[11] = {
+    byte dataArray[12] = {
         id,
+        0x00,
         0x01,
       ((uint8_t*)&temperature)[0],
       ((uint8_t*)&temperature)[1],
@@ -111,8 +119,44 @@ bool LoRaCom::send_temp_mois(uint8_t id, float temperature, float mosisture){
     }
 }
 
+bool LoRaCom::send_pump_status(uint8_t id, char state){
+    int err;
+    byte dataArray[4] = {
+        id,
+        0x01,
+        0x01,
+        state
+   };
 
-String LoRaCom::receive(String data){
-    return "";
+    if (status == true){
+        _modem.beginPacket();
+        _modem.write(dataArray,sizeof(dataArray));
+        err = _modem.endPacket(true);
+        if (err >0){
+            return true;
+        }else{
+            return false;
+        }
+    }else{
+        return false;
+    }
+}
+
+
+int LoRaCom::get_receive(){
+    if (!_modem.available()) {
+    return -1;
+    }
+    else{
+    char rcv[64] = "";
+    int i = 0;
+    while (_modem.available()) {
+      rcv[i % 64] = (char)_modem.read();
+      ++i;
+    }
+
+    String messagio = rcv;
+    return messagio.toInt();
+  }
 }
 
