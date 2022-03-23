@@ -12,11 +12,13 @@ class LoRaCom
         int connection;
 
         LoRaCom(String appEui,String appKey);
+        void change_to_class_C();
         void connect();
         bool send(String data);
         bool send(float data);
         bool send_temp_mois(uint8_t id, float temperature, float mosisture);
-        String receive(String data);
+        bool send_pump_status(uint8_t id, char state);
+        int get_receive();
         String get_device_eui();
     private:
         LoRaModem _modem;

@@ -25,6 +25,7 @@
 
 #define UpdatePeriod 10 //seconds
 #define SensorId 1
+#define LoRaON true
 
 float temperature;
 float moisture;
@@ -36,7 +37,9 @@ LoRaCom lora(appEui, appKey);
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(1, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH); 
+  digitalWrite(1, LOW); 
   // start the Serial communication
   Serial.begin(9600);
   // while (!Serial);
@@ -50,11 +53,14 @@ void setup() {
   Serial.println("The device EUI is:");
   Serial.println(lora.get_device_eui());
   // start LoRa communication
-  lora.connect();
-  while (!lora.status){
-    Serial.println(lora.errorMsg);
-    delay(1000);
+  if (LoRaON==true){
+    lora.connect();
+    while (!lora.status){
+      Serial.println(lora.errorMsg);
+      delay(1000);
+    }
   }
+
   Serial.println("Init succeed!");
   digitalWrite(LED_BUILTIN, LOW);
   delay(1000);
@@ -63,6 +69,8 @@ void setup() {
 
 void loop() {
   digitalWrite(LED_BUILTIN, HIGH); 
+  digitalWrite(1, HIGH); 
+  delay(1000);
   // send a Holding registers read request to (slave) id 1, for 2 registers
   if (!ModbusRTUClient.requestFrom(SensorId, 2, 0x0012, 2)) {
     Serial.print("failed to read registers! ");
@@ -81,8 +89,12 @@ void loop() {
 
     Serial.println(temperature);
     Serial.println(moisture);
-    lora.send_temp_mois(SensorId,temperature,moisture);
+    Serial.println("finished");
+    if (LoRaON==true){
+      lora.send_temp_mois(SensorId,temperature,moisture);
+    }
   }
   digitalWrite(LED_BUILTIN, LOW);  
+  digitalWrite(1, LOW);
   delay(UpdatePeriod*1000);
 }
