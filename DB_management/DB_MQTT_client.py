@@ -90,6 +90,9 @@ class MQTTClient:
             # ALTERNATE PACKET FORMAT
             payload_raw = MQTT_payload_json["data"]["raw_payload"]
             tx_timestamp = MQTT_payload_json["data"]["received_at"]
+        else:
+            # INVALID MY THINGS NETWORK PACKET
+            return
         # largest timestamp, assuming it marks when the packet arrived at the network server
         # rx_server_timestamp = MQTT_payload_json["received_at"]
 
@@ -104,56 +107,59 @@ class MQTTClient:
         # NOTE: this isn't actually the unix timestamp
 
         # TODO: THIS IS A TEMPORARY SOLUTION FOR PACKETS FROM PLUG&SENSE, UPDATE WHEN THEIR FORMAT IS STANDARDIZED
-        global topic2
-        STRING_PAYLOAD_TOPIC = topic2
-        if msg.topic == STRING_PAYLOAD_TOPIC:
-            decoded_data = {}
-            decoded_data["device_ID"] = 100  # set manually
-            decoded_data["data"] = parse_plug_n_sense_str(payload_raw)
-        else:
-            decoded_data = self.decode_payload(payload_raw)
-            """
-            dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
-            sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
-            """
+        try:
+            global topic2
+            STRING_PAYLOAD_TOPIC = topic2
+            if msg.topic == STRING_PAYLOAD_TOPIC:
+                decoded_data = {}
+                decoded_data["device_ID"] = 100  # set manually
+                decoded_data["data"] = parse_plug_n_sense_str(payload_raw)
+            else:
+                decoded_data = self.decode_payload(payload_raw)
+                """
+                dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
+                sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
+                """
 
-        if self.DEBUG:
-            print(f"decoded payload: {decoded_data}, timestamps: tx: {tx_timestamp}")
-        # insert into database
-        if decoded_data["data"] is None:
-            # invalid data
-            return None
-        if tx_timestamp is None:
-            if rx_gateway_timestamp is None:
-                if rx_server_timestamp is None:
-                    tmp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
+            if self.DEBUG:
+                print(f"decoded payload: {decoded_data}, timestamps: tx: {tx_timestamp}")
+            # insert into database
+            if decoded_data["data"] is None:
+                # invalid data
+                return None
+            if tx_timestamp is None:
+                if rx_gateway_timestamp is None:
+                    if rx_server_timestamp is None:
+                        tmp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        tmp = rx_gateway_timestamp
                 else:
                     tmp = rx_gateway_timestamp
             else:
-                tmp = rx_gateway_timestamp
-        else:
-            tmp = tx_timestamp
-        try:
-            tmp = datetime.strptime(tmp.split(".")[0], "%Y-%m-%dT%H:%M:%S")
+                tmp = tx_timestamp
+            try:
+                tmp = datetime.strptime(tmp.split(".")[0], "%Y-%m-%dT%H:%M:%S")
+            except:
+                print("PROBLEM PARSING STRING: ", tmp)
+                tmp = datetime.fromtimestamp(time.time())
+            device_ID = decoded_data["device_ID"]
+            for sensor_pair in decoded_data["data"]:
+                # insert db entry
+                data_dict = {"sensor_type": "single", "sensor_data": {"device_ID": device_ID,
+                                                                            "sensor_type": sensor_pair[0],
+                                                                            "rx_timestamp": tmp,
+                                                                            "sensor_reading": sensor_pair[1]}}
+                insert_sensor_data(self.db_connection, data_dict)
+                """
+                data_dict: dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
+                sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
+                """
+                # dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
+                # sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
+                # insert_preliminary_test_data(self.db_connection, tx_timestamp, rx_gateway_timestamp, rx_server_timestamp,
+                #                              decoded_data["device_ID"], decoded_data["data"])
         except:
-            print("PROBLEM PARSING STRING: ", tmp)
-            tmp = datetime.fromtimestamp(time.time())
-        device_ID = decoded_data["device_ID"]
-        for sensor_pair in decoded_data["data"]:
-            # insert db entry
-            data_dict = {"sensor_type": "single", "sensor_data": {"device_ID": device_ID,
-                                                                        "sensor_type": sensor_pair[0],
-                                                                        "rx_timestamp": tmp,
-                                                                        "sensor_reading": sensor_pair[1]}}
-            insert_sensor_data(self.db_connection, data_dict)
-            """
-            data_dict: dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
-            sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
-            """
-            # dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
-            # sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
-            # insert_preliminary_test_data(self.db_connection, tx_timestamp, rx_gateway_timestamp, rx_server_timestamp,
-            #                              decoded_data["device_ID"], decoded_data["data"])
+            print("error")
 
     def subscribe(self, device_topics):
         self.MQTT_client.subscribe(device_topics)
