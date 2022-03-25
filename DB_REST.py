@@ -38,9 +38,16 @@ if __name__ == '__main__':
     # myPort = data["manualMode"]["port"]
 
     # DATABASE CREDENTIALS
-    DB_name = "new_db"
-    DB_usn = "root"
-    DB_psw = "4Wza^d7LwYP~={RB"
+    # TODO: GET THEM FROM config.json
+    config_file = "/DB_management/config.json"
+    with open(config_file, "w") as fp:
+        config = json.load(fp)
+
+    DB_usn = config["DB_usn"]
+    DB_psw = config["DB_psw"]
+    DB_name = config["DB_name"]
+    DB_host = config["DB_host"]
+    DB_port = config["DB_port"]
 
     # CONNECT TO DATABASE
     db_conn = connect(DB_usn, DB_psw, DB_name)
