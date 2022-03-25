@@ -245,40 +245,7 @@ def insert_ET_value(db_conn, data_dict, unix_tmp = False):
 
 
 if __name__ == "__main__":
-    # TEST APIS
-    DB_usn = "root"
-    DB_psw = "Qwertykk.22!"
-    DB_name = "new_db"
-    DB_host = "80.210.98.95"
-    DB_port = 6606
-    print("connecting to DB..")
-    conn = connect(DB_usn, DB_psw, DB_name, DB_host, DB_port)
-    print("connection established")
-    # unix_tmp = time.time()
-    # et_data_dict = {"field_id": "2", "residual": "4", "Et0_value": "17", "tmp": unix_tmp}
-    # insert_ET_value(conn, et_data_dict, unix_tmp=True)
-    # data = get_sensor_data()
-    db_cursor = conn.cursor()
-    d1 = "2020-03-28 16:17:05"
-    d2 = "2022-03-01 16:17:05"
-    query = 'SELECT * FROM single_value_sensor \
-    WHERE sensor_type = 2 AND \
-    tmp BETWEEN "2020-03-28 16:17:05" AND "2022-03-01 16:17:05";'
-    sensor_type = 2
-    field_id = 0
-    table = "single_value_sensor"
-    query = f'SELECT * FROM {table} ' \
-            f'WHERE sensor_type = %s AND ' \
-            f'tmp BETWEEN %s AND %s;'
-    values = (sensor_type, field_id, d1, d2)
-    query = "SELECT device_id FROM device_list " \
-            "WHERE field_id = %s;"
-    values = (field_id,)
-    db_cursor.execute(query, values)
-    result = db_cursor.fetchall()
-    # db_cursor.commit()
-    db_cursor.close()
-    print(result)
+    pass
 
 
 

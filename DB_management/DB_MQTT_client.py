@@ -9,25 +9,6 @@ import struct
 from datetime import datetime
 import time
 
-# the things network MQTT integration credentials
-broker = 'eu1.cloud.thethings.network'
-port = 1883
-end_dev_topic = "v3/arduino-lora-test-rex@ttn/devices/eui-a8610a3233246f04/up"
-topic = "v3/arduino-lora-test-rex@ttn/devices/eui-a8610a3233246f04/up"
-username = 'arduino-lora-test-rex@ttn'
-password = 'NNSXS.AQKUJD6CGFB3HKLERXNMYVQBTN7VGXQXBLMABXQ.H2WWY5RFV5I5BPR4LJ3R7QVYD76HZYQOF72EL4LLXY7JWVR3HMSQ'
-file_name = "./received.json"
-
-topic2 = "v3/arduino-lora-test-rex@ttn/devices/eui-70b3d57ed004e263/up"  # plug&sense
-topic3 = "v3/arduino-lora-test-rex@ttn/devices/eui-a8610a3233246f04/up"
-topic4 = "v3/arduino-lora-test-rex@ttn/devices/eui-a8610a32371b8001/up"
-
-# mySQL DB credentials
-DB_name = "local_db"
-DB_usn = "root"
-DB_psw = "4Wza^d7LwYP~={RB"
-
-
 class MQTTClient:
 
     DEBUG = True
@@ -161,7 +142,7 @@ class MQTTClient:
         except:
             print("inconsistent packet")
             with open("err_packt_log.json", "a") as fp:
-                fp.write(MQTT_payload_raw+"\n")
+                fp.write(str(MQTT_payload_raw)+"\n")
 
     def subscribe(self, device_topics):
         self.MQTT_client.subscribe(device_topics)
@@ -211,12 +192,26 @@ class MQTTClient:
 
 
 if __name__ == '__main__':
+
+    config_file = "config.json"
+
+    with open(config_file, "r") as fp:
+        config = json.load(fp)
+    print(config)
+    broker = config["broker"]
+    port = config["port"]
+    username = config["username"]
+    password = config["password"]
+
+    topic2 = config["topic2"]
+    topic3 = config["topic3"]
+    topic4 = config["topic4"]
+    DB_usn = config["DB_usn"]
+    DB_psw = config["DB_psw"]
+    DB_name = config["DB_name"]
+    DB_host = config["DB_host"]
+    DB_port = config["DB_port"]
     topics = [topic2, topic3, topic4]
-    DB_usn = "root"
-    DB_psw = "Qwertykk.22!"
-    DB_name = "new_db"
-    DB_host = "80.210.98.95"
-    DB_port = 6606
     test_client = MQTTClient("test-213", broker, port, mqtt_auth=(username, password), device_topics=topics)
     test_client.connect_to_db(DB_usn, DB_psw, DB_name, DB_host, DB_port)
     test_client.start()
