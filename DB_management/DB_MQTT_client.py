@@ -159,7 +159,9 @@ class MQTTClient:
                 # insert_preliminary_test_data(self.db_connection, tx_timestamp, rx_gateway_timestamp, rx_server_timestamp,
                 #                              decoded_data["device_ID"], decoded_data["data"])
         except:
-            print("error")
+            print("inconsistent packet")
+            with open("err_packt_log.json", "a") as fp:
+                fp.write(MQTT_payload_raw+"\n")
 
     def subscribe(self, device_topics):
         self.MQTT_client.subscribe(device_topics)
