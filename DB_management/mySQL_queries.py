@@ -3,6 +3,7 @@ from mysql.connector import errorcode
 from datetime import datetime
 import time
 from datetime import datetime
+import json
 # APIs to access the DB
 DEBUG = True
 DATE_FORMAT_STR = "%Y-%m-%d %H:%M:%S"  # ex: 2022-03-18 16:17:05
@@ -39,6 +40,7 @@ def connect(usn, psw, db, host=None, port=None):
             print(err)
         return None
     return mydb
+
 
 # query to insert data for preliminary test
 def insert_preliminary_test_data(db_conn, tx_tmp, rx_gateway_tmp, rx_server_tmp, dev_id, data_list):
@@ -77,14 +79,14 @@ def insert_preliminary_test_data(db_conn, tx_tmp, rx_gateway_tmp, rx_server_tmp,
 #
 
 
-def get_sensor_data(db_conn, table, sensor_type, field_id, period, unix_tmp = False):
+def get_sensor_data(db_conn, table, field_id, period, sensor_type = None, unix_tmp = False):
     """
 
-    :param db_conn:
-    :param table:
-    :param sensor_type:
-    :param field_id:
-    :param period:
+    :param db_conn: instance of mySQLconnection (returned by connect() function)
+    :param table: the db table to query (single_value_sensor, multi_value_sensor, bool_value_sensor)
+    :param sensor_type: id of the sensor type, if left empty all readings of a specific field id will be retrieved
+    :param field_id: id of the field to query
+    :param period: list of format [d1, d2]; where d1 and d2 are datetime objects that delimitate the chosen period
     :param unix_timestamp: flag to specify if timestamp in payload is a unix tmp
     :return:
     """
@@ -93,7 +95,7 @@ def get_sensor_data(db_conn, table, sensor_type, field_id, period, unix_tmp = Fa
     db_cursor = db_conn.cursor()
 
     query = "SELECT device_id FROM device_list " \
-                "WHERE field_id = %s;"
+            "WHERE field_id = %s;"
     values = (field_id,)
     try:
         db_cursor.execute(query, values)
@@ -104,8 +106,9 @@ def get_sensor_data(db_conn, table, sensor_type, field_id, period, unix_tmp = Fa
     dev_id_list = []
     for el in result:
         dev_id_list.append(el[0])
-
+    result = []
     for device_id in dev_id_list:
+        print(device_id)
         d1 = period[0]
         d2 = period[1]
         if unix_tmp:
@@ -114,15 +117,25 @@ def get_sensor_data(db_conn, table, sensor_type, field_id, period, unix_tmp = Fa
             d2 = datetime.fromtimestamp(d2).strftime(DATE_FORMAT_STR)
 
         db_cursor = db_conn.cursor()
-        query = f'SELECT * FROM {table} ' \
-                f'WHERE sensor_type = %s AND ' \
-                f'tmp BETWEEN %s AND %s;'
-        values = (sensor_type, device_id, d1, d2)
+        if sensor_type is None:
+            query = f'SELECT * FROM {table} ' \
+                    f'WHERE device_id = %s AND ' \
+                    f'tmp BETWEEN %s AND %s;'
+            values = (device_id, d1, d2)
+        else:
+            query = f'SELECT * FROM {table} ' \
+                    f'WHERE sensor_type = %s AND ' \
+                    f'device_id = %s AND' \
+                    f'tmp BETWEEN %s AND %s;'
+            values = (sensor_type, device_id, d1, d2)
         try:
+            print("sending query: ", query, "; values: ", values)
             db_cursor.execute(query, values)
         except:
             print(f"Error handling query: {query}")
             raise Exception
+        query_result = db_cursor.fetchall()
+        print(query_result)
         result.append(db_cursor.fetchall())
         # print("result: ", result)
         # db_conn.commit()
@@ -138,12 +151,12 @@ def get_sensor_data(db_conn, table, sensor_type, field_id, period, unix_tmp = Fa
 # inserts all the data included in a single LoRa payload
 def insert_sensor_data(db_conn, data_dict, unix_tmp = False):
     """
-    
+
     :param unix_tmp: flag to specify if timestamp in payload is a unix tmp
     :param db_conn:
     :param data_dict: dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
     sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
-    :return: 
+    :return:
     """
 
     global DATE_FORMAT_STR
@@ -245,7 +258,30 @@ def insert_ET_value(db_conn, data_dict, unix_tmp = False):
 
 
 if __name__ == "__main__":
-    pass
+    config_file = "config.json"
 
+    with open(config_file, "r") as fp:
+        config = json.load(fp)
+    # print("current config: ", config)
+    broker = config["broker"]
+    port = config["port"]
+    username = config["username"]
+    password = config["password"]
 
+    topic2 = config["topic2"]
+    topic3 = config["topic3"]
+    topic4 = config["topic4"]
+    DB_usn = config["DB_usn"]
+    DB_psw = config["DB_psw"]
+    DB_name = config["DB_name"]
+    DB_host = config["DB_host"]
+    DB_port = config["DB_port"]
+    db_connection = connect(DB_usn, DB_psw, DB_name, DB_host, DB_port)
+    db_cursor = db_connection.cursor()
+
+    d1 = datetime(2022, 3, 25)
+    d2 = datetime(2022, 3, 26)
+    query_period = [d1,d2]
+    results = get_sensor_data(db_connection, "single_value_sensor", 0, query_period)
+    print(results)
 
