@@ -79,6 +79,86 @@ def insert_preliminary_test_data(db_conn, tx_tmp, rx_gateway_tmp, rx_server_tmp,
 #
 
 
+def get_most_recent(db_conn, table, field_id, sensor_type):
+    """
+
+    :param db_conn: instance of mySQLconnection (returned by connect() function)
+    :param table: the db table to query (single_value_sensor, multi_value_sensor, bool_value_sensor)
+    :param field_id: id of the field to query
+    :param sensor_type: id of the sensor type, if left empty all readings of a specific field id will be retrieved
+    :return:
+    """
+    global DATE_FORMAT_STR
+    # TODO: get list of device id in field
+    db_cursor = db_conn.cursor()
+
+    query = "SELECT device_id FROM device_list " \
+            "WHERE field_id = %s;"
+    values = (field_id,)
+    try:
+        db_cursor.execute(query, values)
+    except:
+        print(f"Error handling query: {query}")
+        raise Exception
+    result = db_cursor.fetchall()
+    dev_id_list = []
+    for el in result:
+        dev_id_list.append(el[0])
+    result = []
+    # print("id list: ", dev_id_list)
+    most_recent_tmp = datetime.fromtimestamp(0)
+    for device_id in dev_id_list:
+        tmp_query = f"SELECT MAX(tmp) FROM {table} " \
+                    f"WHERE device_ID = %s AND " \
+                    f"sensor_type = %s;"
+        values = (device_id, sensor_type)
+        try:
+            db_cursor.execute(tmp_query, values)
+        except:
+            print(f"Error handling query: {query}")
+            raise Exception
+        result = db_cursor.fetchall()[0][0]
+        if result is not None:
+            if result > most_recent_tmp:
+                most_recent_tmp = result
+        # most_recent_tmp = db_cursor.fetchall()[0]
+        # db_cursor = db_conn.cursor()
+        # if sensor_type is None:
+        #     query = f'SELECT * FROM {table} ' \
+        #             f'WHERE device_id = %s AND ' \
+        #             f'tmp BETWEEN %s AND %s;'
+        #     values = (device_id, d1, d2)
+        # else:
+        #     query = f'SELECT * FROM {table} ' \
+        #             f'WHERE sensor_type = %s AND ' \
+        #                 f'device_id = %s AND' \
+        #             f'tmp BETWEEN %s AND %s;'
+        #     values = (sensor_type, device_id, d1, d2)
+        # try:
+        #     print("sending query: ", query, "; values: ", values)
+        #     db_cursor.execute(query, values)
+        # except:
+        #     print(f"Error handling query: {query}")
+        #     raise Exception
+        # query_result = db_cursor.fetchall()
+        # print(query_result)
+        # result.append(db_cursor.fetchall())
+        # print("result: ", result)
+        # db_conn.commit()
+    # close cursor
+    query = f"SELECT * FROM {table} " \
+            f"WHERE tmp = %s AND sensor_type = %s;"
+    values = (most_recent_tmp, sensor_type)
+    try:
+        db_cursor.execute(query, values)
+    except:
+        print(f"Error handling query: {query}")
+        raise Exception
+    result = db_cursor.fetchall()
+    db_cursor.close()
+    return result
+
+
 def get_sensor_data(db_conn, table, field_id, period, sensor_type = None, unix_tmp = False):
     """
 
@@ -87,7 +167,7 @@ def get_sensor_data(db_conn, table, field_id, period, sensor_type = None, unix_t
     :param sensor_type: id of the sensor type, if left empty all readings of a specific field id will be retrieved
     :param field_id: id of the field to query
     :param period: list of format [d1, d2]; where d1 and d2 are datetime objects that delimitate the chosen period
-    :param unix_timestamp: flag to specify if timestamp in payload is a unix tmp
+    :param unix_tmp: flag to specify if timestamp in payload is a unix tmp
     :return:
     """
     global DATE_FORMAT_STR
@@ -281,7 +361,9 @@ if __name__ == "__main__":
 
     d1 = datetime(2022, 3, 25)
     d2 = datetime(2022, 3, 26)
-    query_period = [d1,d2]
-    results = get_sensor_data(db_connection, "single_value_sensor", 0, query_period)
-    print(results)
+    query_period = [d1, d2]
+    # results = get_sensor_data(db_connection, "single_value_sensor", 0, query_period)
+    result = get_most_recent(db_connection, "single_value_sensor", 0, 1)
+    print(result)
+    # print(results)
 
