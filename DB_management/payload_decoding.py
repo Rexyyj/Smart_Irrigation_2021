@@ -39,13 +39,13 @@ def decode_LoRa_sensors(payload_bytes):
             n += 1
 
         # multi-later sensor
-        elif sensor_type == 999:  # TODO: UPDATE WHEN SENSOR ID HAS BEEN SET
+        elif sensor_type == 11 or sensor_type == 12:
             try:
                 # three little endian 4-byte float in succession
-                sensor_data = [struct.unpack('<f', payload_bytes[n:n+4])[0] for n in range(0, 12, 4)]
+                sensor_data = [struct.unpack('<f', payload_bytes[n+k:n+k+4])[0] for k in range(0, 12, 4)]
             except:
-                print(f"{len(payload_bytes)}")
-                raise ValueError("")
+                print("ERROR with multilayer status message, msg payload: ", payload_bytes[n:])
+                return None
             n += 12
 
         elif 1 <= sensor_type <= 10:  # single value sensor

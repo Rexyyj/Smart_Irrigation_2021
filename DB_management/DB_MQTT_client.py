@@ -1,6 +1,6 @@
 import time
 
-from DB_management.mySQL_queries import insert_preliminary_test_data, connect, insert_sensor_data
+from mySQL_queries import insert_preliminary_test_data, connect, insert_sensor_data
 from paho.mqtt import client as _mqtt_client
 from payload_decoding import decode_LoRa_sensors, parse_plug_n_sense_str
 import json
@@ -8,6 +8,23 @@ import base64
 import struct
 from datetime import datetime
 import time
+
+
+def get_sensor_type(sensor_id):
+    multi_layer_sensors = [11, 12]
+    single_layer_sensors = [1, 2, 3, 4, 5, 6, 7]
+    bool_sensors = []
+    pump_message = [257]
+
+    if sensor_id in single_layer_sensors:
+        return "single"
+    if sensor_id in bool_sensors:
+        return "bool"
+    if sensor_id in multi_layer_sensors:
+        return "multi"
+
+    return None  # unrecognized ID
+
 
 class MQTTClient:
 
@@ -36,113 +53,120 @@ class MQTTClient:
             print("Failed to connect to MQTT broker, return code %d\n", rc)
 
     def on_message(self, paho_mqtt, userdata, msg):
-        if self.DEBUG:
-            print(f"received payload, topic: {msg.topic}")
-        MQTT_payload_raw = msg.payload
-        MQTT_payload_json = json.loads(MQTT_payload_raw)
-
-        # # id of the transmitter
-        transmitter_id = MQTT_payload_json["end_device_ids"]["device_id"]
-
-        # payload (raw bits, needs decoding)
-        rx_server_timestamp = None
-        rx_gateway_timestamp = None
-        tx_timestamp = None
-        if "uplink_message" in MQTT_payload_json:
-            if "frm_payload" in MQTT_payload_json["uplink_message"]:
-                payload_raw = MQTT_payload_json["uplink_message"]["frm_payload"]
-            # search if timestamps are in the json packet, if a tmp is not found, NULL value will be inserted in the db
-            if "received_at" in MQTT_payload_json:
-                tx_timestamp = MQTT_payload_json["received_at"]
-            if "uplink_message" in MQTT_payload_json:
-                if "received_at" in MQTT_payload_json["uplink_message"]:
-                    rx_gateway_timestamp = MQTT_payload_json["uplink_message"]["received_at"]
-                if "settings" in MQTT_payload_json["uplink_message"]:
-                    if "time" in MQTT_payload_json["uplink_message"]["settings"]:
-                        tx_timestamp = MQTT_payload_json["uplink_message"]["settings"]["time"]
-                if tx_timestamp is None:
-                    if "rx_metadata" in MQTT_payload_json["uplink_message"]:
-                        if type(MQTT_payload_json["uplink_message"]["rx_metadata"]) is list:
-                            for el in MQTT_payload_json["uplink_message"]["rx_metadata"]:
-                                if "time" in el:
-                                    tx_timestamp = el["time"]
-                                    break
-        elif "data" in MQTT_payload_json:
-            # ALTERNATE PACKET FORMAT
-            payload_raw = MQTT_payload_json["data"]["raw_payload"]
-            tx_timestamp = MQTT_payload_json["data"]["received_at"]
-        else:
-            # INVALID MY THINGS NETWORK PACKET
-            return
-        # largest timestamp, assuming it marks when the packet arrived at the network server
-        # rx_server_timestamp = MQTT_payload_json["received_at"]
-
-        # 2nd largest timestamp, assuming it marks when the LoRa packet arrived at the gateway
-        # rx_gateway_timestamp = MQTT_payload_json["uplink_message"]["received_at"]
-
-        # these are the two lowest timestamp in the packet (and they are equal), assuming they mark tx time
-        # tx_timestamp = MQTT_payload_json["uplink_message"]["settings"]["time"]
-        # tx_timestamp2 = MQTT_payload_json["uplink_message"]["rx_metadata"][0]["time"]
-        # tx_unix_timestamp = MQTT_payload_json["uplink_message"]["settings"]["timestamp"]
-        # tx_unix_timestamp2 = MQTT_payload_json["uplink_message"]["rx_metadata"][0]["timestamp"]
-        # NOTE: this isn't actually the unix timestamp
-
-        # TODO: THIS IS A TEMPORARY SOLUTION FOR PACKETS FROM PLUG&SENSE, UPDATE WHEN THEIR FORMAT IS STANDARDIZED
         try:
-            global topic2
-            STRING_PAYLOAD_TOPIC = topic2
-            if msg.topic == STRING_PAYLOAD_TOPIC:
-                decoded_data = {}
-                decoded_data["device_ID"] = 100  # set manually
-                decoded_data["data"] = parse_plug_n_sense_str(payload_raw)
-            else:
-                decoded_data = self.decode_payload(payload_raw)
-                """
-                dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
-                sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
-                """
-
             if self.DEBUG:
-                print(f"decoded payload: {decoded_data}, timestamps: tx: {tx_timestamp}")
-            # insert into database
-            if decoded_data["data"] is None:
-                # invalid data
-                return None
-            if tx_timestamp is None:
-                if rx_gateway_timestamp is None:
-                    if rx_server_timestamp is None:
-                        tmp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
+                print(f"received payload, topic: {msg.topic}")
+            MQTT_payload_raw = msg.payload
+            MQTT_payload_json = json.loads(MQTT_payload_raw)
+    
+            # # id of the transmitter
+            transmitter_id = MQTT_payload_json["end_device_ids"]["device_id"]
+    
+            # payload (raw bits, needs decoding)
+            rx_server_timestamp = None
+            rx_gateway_timestamp = None
+            tx_timestamp = None
+            if "uplink_message" in MQTT_payload_json:
+                if "frm_payload" in MQTT_payload_json["uplink_message"]:
+                    payload_raw = MQTT_payload_json["uplink_message"]["frm_payload"]
+                # search if timestamps are in the json packet, if a tmp is not found, NULL value will be inserted in the db
+                if "received_at" in MQTT_payload_json:
+                    tx_timestamp = MQTT_payload_json["received_at"]
+                if "uplink_message" in MQTT_payload_json:
+                    if "received_at" in MQTT_payload_json["uplink_message"]:
+                        rx_gateway_timestamp = MQTT_payload_json["uplink_message"]["received_at"]
+                    if "settings" in MQTT_payload_json["uplink_message"]:
+                        if "time" in MQTT_payload_json["uplink_message"]["settings"]:
+                            tx_timestamp = MQTT_payload_json["uplink_message"]["settings"]["time"]
+                    if tx_timestamp is None:
+                        if "rx_metadata" in MQTT_payload_json["uplink_message"]:
+                            if type(MQTT_payload_json["uplink_message"]["rx_metadata"]) is list:
+                                for el in MQTT_payload_json["uplink_message"]["rx_metadata"]:
+                                    if "time" in el:
+                                        tx_timestamp = el["time"]
+                                        break
+            elif "data" in MQTT_payload_json:
+                # ALTERNATE PACKET FORMAT
+                payload_raw = MQTT_payload_json["data"]["raw_payload"]
+                tx_timestamp = MQTT_payload_json["data"]["received_at"]
+            else:
+                # INVALID MY THINGS NETWORK PACKET
+                return
+            # largest timestamp, assuming it marks when the packet arrived at the network server
+            # rx_server_timestamp = MQTT_payload_json["received_at"]
+    
+            # 2nd largest timestamp, assuming it marks when the LoRa packet arrived at the gateway
+            # rx_gateway_timestamp = MQTT_payload_json["uplink_message"]["received_at"]
+    
+            # these are the two lowest timestamp in the packet (and they are equal), assuming they mark tx time
+            # tx_timestamp = MQTT_payload_json["uplink_message"]["settings"]["time"]
+            # tx_timestamp2 = MQTT_payload_json["uplink_message"]["rx_metadata"][0]["time"]
+            # tx_unix_timestamp = MQTT_payload_json["uplink_message"]["settings"]["timestamp"]
+            # tx_unix_timestamp2 = MQTT_payload_json["uplink_message"]["rx_metadata"][0]["timestamp"]
+            # NOTE: this isn't actually the unix timestamp
+    
+            try:
+                # TODO: THIS IS A TEMPORARY SOLUTION FOR PACKETS FROM PLUG&SENSE, UPDATE WHEN THEIR FORMAT IS STANDARDIZED
+                global topic2
+                STRING_PAYLOAD_TOPIC = topic2
+                if msg.topic == STRING_PAYLOAD_TOPIC:
+                    decoded_data = {}
+                    decoded_data["device_ID"] = 100  # set manually
+                    decoded_data["data"] = parse_plug_n_sense_str(payload_raw)
+                else:
+                    decoded_data = self.decode_payload(payload_raw)
+                    """
+                    dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
+                    sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
+                    """
+    
+                if self.DEBUG:
+                    print(f"decoded payload: {decoded_data}, timestamps: tx: {tx_timestamp}")
+                # insert into database
+                if decoded_data["data"] is None:
+                    # invalid data
+                    return None
+                if tx_timestamp is None:
+                    if rx_gateway_timestamp is None:
+                        if rx_server_timestamp is None:
+                            tmp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
+                        else:
+                            tmp = rx_gateway_timestamp
                     else:
                         tmp = rx_gateway_timestamp
                 else:
-                    tmp = rx_gateway_timestamp
-            else:
-                tmp = tx_timestamp
-            try:
-                tmp = datetime.strptime(tmp.split(".")[0], "%Y-%m-%dT%H:%M:%S")
+                    tmp = tx_timestamp
+                try:
+                    tmp = datetime.strptime(tmp.split(".")[0], "%Y-%m-%dT%H:%M:%S")
+                except:
+                    print("PROBLEM PARSING STRING: ", tmp)
+                    tmp = datetime.fromtimestamp(time.time())
+                device_ID = decoded_data["device_ID"]
+
+                # INSERT INTO DB
+                for sensor_pair in decoded_data["data"]:
+                    # insert single db entry
+                    sensor_type_id = int(sensor_pair[0])
+                    sensor_value = sensor_pair[1]
+                    data_dict = {"sensor_type": get_sensor_type(sensor_type_id), "sensor_data": {"device_ID": device_ID,
+                                                                                "sensor_type": sensor_type_id,
+                                                                                "rx_timestamp": tmp,
+                                                                                "sensor_reading": sensor_value}}
+                    insert_sensor_data(self.db_connection, data_dict)
+                    """
+                    data_dict: dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
+                    sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
+                    """
+                    # dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
+                    # sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
+                    # insert_preliminary_test_data(self.db_connection, tx_timestamp, rx_gateway_timestamp, rx_server_timestamp,
+                    #                              decoded_data["device_ID"], decoded_data["data"])
             except:
-                print("PROBLEM PARSING STRING: ", tmp)
-                tmp = datetime.fromtimestamp(time.time())
-            device_ID = decoded_data["device_ID"]
-            for sensor_pair in decoded_data["data"]:
-                # insert db entry
-                data_dict = {"sensor_type": "single", "sensor_data": {"device_ID": device_ID,
-                                                                            "sensor_type": sensor_pair[0],
-                                                                            "rx_timestamp": tmp,
-                                                                            "sensor_reading": sensor_pair[1]}}
-                insert_sensor_data(self.db_connection, data_dict)
-                """
-                data_dict: dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
-                sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
-                """
-                # dictionary with struct: {"sensor_type": str, "sensor_data": sensor_dict};
-                # sensor_dict: {"device_ID", sensor_type, rx_timestamp, sensor_reading,}
-                # insert_preliminary_test_data(self.db_connection, tx_timestamp, rx_gateway_timestamp, rx_server_timestamp,
-                #                              decoded_data["device_ID"], decoded_data["data"])
+                print("inconsistent packet")
+                with open("err_packt_log.json", "a") as fp:
+                    fp.write(str(MQTT_payload_raw)+"\n")
         except:
-            print("inconsistent packet")
-            with open("err_packt_log.json", "a") as fp:
-                fp.write(str(MQTT_payload_raw)+"\n")
+            print("ERROR")
 
     def subscribe(self, device_topics):
         self.MQTT_client.subscribe(device_topics)
