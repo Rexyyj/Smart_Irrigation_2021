@@ -1,5 +1,5 @@
 /*
-  Modbus RTU connection with SEM225 sensor
+  Modbus RTU connection with SEM2255 sensor
 
   Circuit:
    - MKR board
@@ -7,8 +7,8 @@
    - MKR 485 shield
      - GND connected to GND of the Modbus RTU sensor and the Power supply V-
      - Power supply V+ connected to V+ sensor and MKR 7-24V input
-     - Y connected to A/Y of the Modbus RTU sensor
-     - Z connected to B/Z of the Modbus RTU sensor
+     - Y connected to A/Y of the Modbus RTU sensor (green)
+     - Z connected to B/Z of the Modbus RTU sensor (blue)
      - Jumper positions
        - FULL set to OFF
        - Z \/\/ Y set to ON
@@ -24,14 +24,16 @@
 #include <LoRaCom.h>
 #include "ArduinoLowPower.h"
 #define UpdatePeriod 10 //seconds
-#define SensorId 1
 #define LoRaON true
+#define EndnodeID 3
 
-float temperature;
-float moisture;
+int sensorNum=3;
+int sensorID[3]={1,2,3};
+float temperature[3];
+float moisture[3];
 
 String appEui = "0000000000000000";
-String appKey = "FE756C6D733663AC72B081EA8DEEE11C";
+String appKey = "22107E640249BEB8EB9379896316B464";
 LoRaCom lora(appEui, appKey);
 
 void setup() {
@@ -46,7 +48,7 @@ void setup() {
 
   Serial.println("Modbus Temperature Humidity Sensor");
   // start the Modbus RTU client
-  if (!ModbusRTUClient.begin(9600)) {
+  if (!ModbusRTUClient.begin(4800)) {
     Serial.println("Failed to start Modbus RTU Client!");
     while (1);
   }
@@ -75,31 +77,42 @@ void loop() {
   digitalWrite(LED_BUILTIN, HIGH); 
   digitalWrite(1, HIGH); 
   delay(1000);
-  // send a Holding registers read request to (slave) id 1, for 2 registers
-  // 0x0012
-  if (!ModbusRTUClient.requestFrom(SensorId, 2, 0x0012, 4)) {
-    Serial.print("failed to read registers! ");
-    Serial.println(ModbusRTUClient.lastError());
-  } else {
-    // If the request succeeds, the sensor sends the readings, that are
-    // stored in the holding registers. The read() method can be used to
-    // get the raw temperature and the humidity values.
-    short rawMoistrue = ModbusRTUClient.read();
-    short rawTemperature = ModbusRTUClient.read();
+  bool read_success=false;
+  for (int i=0;i<sensorNum;i++){
+    // send a Holding registers read request to (slave) id 1, for 2 registers
+    delay(500);
+    if (!ModbusRTUClient.requestFrom(sensorID[i], 2, 0x0000, 2)) {
+      Serial.print("failed to read registers! ");
+      Serial.println(ModbusRTUClient.lastError());
+    } else {
+      // If the request succeeds, the sensor sends the readings, that are
+      // stored in the holding registers. The read() method can be used to
+      // get the raw temperature and the humidity values.
+      short rawMoistrue = ModbusRTUClient.read();
+      short rawTemperature = ModbusRTUClient.read();
 
-    // To get the temperature in Celsius and the humidity reading as
-    // a percentage, divide the raw value by 10.0.
-    temperature = rawTemperature / 10.0;
-    moisture = rawMoistrue / 10.0;
+      // To get the temperature in Celsius and the humidity reading as
+      // a percentage, divide the raw value by 10.0.
+      temperature[i] = rawTemperature / 10.0;
+      moisture[i] = rawMoistrue / 10.0;
 
-    Serial.println(temperature);
-    Serial.println(moisture);
 
-    Serial.println("finished");
-    if (LoRaON==true){
-      lora.send_temp_mois(SensorId,temperature,moisture);
+      read_success=true;
+      Serial.println("Read success!");
     }
+    
   }
+  for (int i=0;i<sensorNum;i++){
+      Serial.println(temperature[i]);
+      Serial.println(moisture[i]);
+      Serial.println("");
+  }
+  if (LoRaON==true && read_success==true){
+      lora.send_multi_layer(EndnodeID,temperature[0],temperature[1],temperature[2],moisture[0],moisture[1],moisture[2]);
+      
+    }
+
+
   digitalWrite(LED_BUILTIN, LOW);  
   digitalWrite(1, LOW);
   
