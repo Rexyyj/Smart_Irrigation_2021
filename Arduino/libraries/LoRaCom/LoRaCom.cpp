@@ -90,7 +90,7 @@ bool LoRaCom::send(float data){
 
 bool LoRaCom::send_temp_mois(uint8_t id, float temperature, float mosisture){
     int err;
-    byte dataArray[12] = {
+    byte dataArray[13] = {
         id,
         0x00,
         0x01,
@@ -98,6 +98,7 @@ bool LoRaCom::send_temp_mois(uint8_t id, float temperature, float mosisture){
       ((uint8_t*)&temperature)[1],
       ((uint8_t*)&temperature)[2],
       ((uint8_t*)&temperature)[3],
+        0x00,
         0x02,
       ((uint8_t*)&mosisture)[0],
       ((uint8_t*)&mosisture)[1],
@@ -118,6 +119,56 @@ bool LoRaCom::send_temp_mois(uint8_t id, float temperature, float mosisture){
         return false;
     }
 }
+
+bool LoRaCom::send_multi_layer(uint8_t id,float tmp1, float tmp2,float tmp3,float moi1, float moi2, float moi3){
+    int err;
+    byte dataArray[29] = {
+        id,
+        0x00,
+        0x11,
+      ((uint8_t*)&tmp1)[0],
+      ((uint8_t*)&tmp1)[1],
+      ((uint8_t*)&tmp1)[2],
+      ((uint8_t*)&tmp1)[3],
+      ((uint8_t*)&tmp2)[0],
+      ((uint8_t*)&tmp2)[1],
+      ((uint8_t*)&tmp2)[2],
+      ((uint8_t*)&tmp2)[3],
+      ((uint8_t*)&tmp3)[0],
+      ((uint8_t*)&tmp3)[1],
+      ((uint8_t*)&tmp3)[2],
+      ((uint8_t*)&tmp3)[3],
+        0x00,
+        0x12,
+      ((uint8_t*)&moi1)[0],
+      ((uint8_t*)&moi1)[1],
+      ((uint8_t*)&moi1)[2],
+      ((uint8_t*)&moi1)[3],
+      ((uint8_t*)&moi2)[0],
+      ((uint8_t*)&moi2)[1],
+      ((uint8_t*)&moi2)[2],
+      ((uint8_t*)&moi2)[3],
+      ((uint8_t*)&moi3)[0],
+      ((uint8_t*)&moi3)[1],
+      ((uint8_t*)&moi3)[2],
+      ((uint8_t*)&moi3)[3],
+   };
+    if (status == true){
+        _modem.beginPacket();
+        _modem.write(dataArray,sizeof(dataArray));
+        err = _modem.endPacket(true);
+        if (err >0){
+            return true;
+        }else{
+            return false;
+        }
+    }else{
+        return false;
+    }
+}
+
+
+
 
 bool LoRaCom::send_pump_status(uint8_t id, char state){
     int err;

@@ -5,8 +5,8 @@ String appEui = "0000000000000000";
 String appKey = "7782AD611823290CC281D369A2C5FBB9";
 LoRaCom lora(appEui, appKey);
 uint8_t device_id = 0x03;
-int update_period = 3; // s
-float irrigation_speed = 0.5; // L/s
+int update_period = 10; // s
+float irrigation_speed = 0.1; // L/s
 
 void setup() {
 
