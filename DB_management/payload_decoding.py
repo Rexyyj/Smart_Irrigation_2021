@@ -29,6 +29,7 @@ def decode_LoRa_sensors(payload_bytes):
     n = 0
     data = []
     while n < len(payload_bytes):
+        sensor_data = []
         sensor_type = 256*int(payload_bytes[n]) + int(payload_bytes[n+1])  # sensor id is a 2-byte value
         n += 2
 
@@ -39,14 +40,15 @@ def decode_LoRa_sensors(payload_bytes):
             n += 1
 
         # multi-later sensor
-        elif sensor_type == 11 or sensor_type == 12:
+        elif sensor_type == 17 or sensor_type == 18:
             try:
                 # three little endian 4-byte float in succession
-                sensor_data = [struct.unpack('<f', payload_bytes[n+k:n+k+4])[0] for k in range(0, 12, 4)]
+                layer_reading = [struct.unpack('<f', payload_bytes[n+k:n+k+4])[0] for k in range(0, 12, 4)]
+                sensor_data.append(layer_reading)
+                n += 12
             except:
-                print("ERROR with multilayer status message, msg payload: ", payload_bytes[n:])
+                print("ERROR with multilayer status message, msg payload: ", payload_bytes)
                 return None
-            n += 12
 
         elif 1 <= sensor_type <= 10:  # single value sensor
             try:
@@ -66,14 +68,13 @@ def decode_LoRa_sensors(payload_bytes):
                 return data
 
             except:
-                print("ERROR with pump status msg: ", payload_bytes[n:])
+                print("ERROR with pump status msg: ", payload_bytes)
                 return None
 
         # single float sensor
         else:
             print(f"UNRECOGNIZED SENSOR ID: {sensor_type}, payload: {payload_bytes}")
             sensor_data = None
-            data.append([sensor_type, sensor_data])
             # raise ValueError("")
             n += 4
 

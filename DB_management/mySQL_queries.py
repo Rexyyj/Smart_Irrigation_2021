@@ -229,7 +229,7 @@ def get_sensor_data(db_conn, table, field_id, period, sensor_type = None, unix_t
 # ----------------------------------------------------------------------------------------------------------------------
 
 # inserts all the data included in a single LoRa payload
-def insert_sensor_data(db_conn, data_dict, unix_tmp = False):
+def insert_sensor_data(db_conn, data_dict, unix_tmp = False, DEBUG = False):
     """
     :param unix_tmp: flag to specify if timestamp in payload is a unix tmp
     :param db_conn:
@@ -271,10 +271,10 @@ def insert_sensor_data(db_conn, data_dict, unix_tmp = False):
 
     elif data_dict["sensor_type"] is "multi":
 
-        sensor_reading = data_dict["sensor_data"]["sensor_reading"]  # should be a list
+        sensor_reading = data_dict["sensor_data"]["sensor_reading"][0]  # should be a list
 
         query = (
-            "INSERT INTO bool_value_sensor(device_ID, sensor_type, tmp, filtered, layer1, layer2, layer3)"
+            "INSERT INTO multi_value_sensor(device_ID, sensor_type, tmp, filtered, layer1, layer2, layer3)"
             "VALUES (%s, %s, %s, %s, %s, %s, %s);"
         )
         data = (dev_id, sensor_type_id, tx_timestamp, 0, sensor_reading[0], sensor_reading[1], sensor_reading[2])
@@ -284,6 +284,8 @@ def insert_sensor_data(db_conn, data_dict, unix_tmp = False):
         return 0
 
     try:
+        if DEBUG:
+            print("sending DB query: ", query, "; data: ", data)
         db_cursor.execute(query, data)
     except:
         print(f"Error handling query: {query}, data: {data}")
@@ -358,11 +360,11 @@ if __name__ == "__main__":
     db_connection = connect(DB_usn, DB_psw, DB_name, DB_host, DB_port)
     db_cursor = db_connection.cursor()
 
-    d1 = datetime(2022, 3, 25)
-    d2 = datetime(2022, 3, 26)
-    query_period = [d1, d2]
-    # results = get_sensor_data(db_connection, "single_value_sensor", 0, query_period)
-    result = get_most_recent(db_connection, "single_value_sensor", 0, 1)
-    print(result)
+    # d1 = datetime(2022, 3, 25)
+    # d2 = datetime(2022, 3, 26)
+    # query_period = [d1, d2]
+    # # results = get_sensor_data(db_connection, "single_value_sensor", 0, query_period)
+    # result = get_most_recent(db_connection, "single_value_sensor", 0, 1)
+    # print(result)
     # print(results)
 
