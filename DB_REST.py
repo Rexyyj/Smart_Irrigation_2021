@@ -2,9 +2,8 @@ import cherrypy
 import time
 import json
 import os
-from DB_management.mySQL_queries import insert_sensor_data, connect, get_sensor_data, get_most_recent
+from DB_management.mySQL_queries import insert_sensor_data, connect, get_sensor_data, get_most_recent, get_credentials
 from datetime import datetime
-import cherrypy_cors
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -44,6 +43,26 @@ class DB_REST_interface(object):
 
                 sensor_data = get_most_recent(db_conn, "single_value_sensor", field_id, sensor_id)
                 return json.dumps(sensor_data, cls=DateTimeEncoder)
+
+            if req == "login":
+                try:
+                    username = uri[1]
+                    password = uri[2]
+                except:
+                    print(f"ERROR: invalid url format; request: {req}, full url: {uri}")
+                    return
+
+                credential_data = get_credentials(db_conn, username)
+                if len(credential_data) == 0:
+                    # username not found in database
+                    return "USERNAME NOT FOUND"
+
+                stored_password = credential_data[0][1]
+                if stored_password == password:
+                    output_obj = {"role": credential_data[0][2], "field_id": credential_data[0][3]}
+                    return json.dumps(output_obj, cls=DateTimeEncoder)
+                else:
+                    return "PASSWORD DOESN'T MATCH"
 
             else:
                 return "invalid url"

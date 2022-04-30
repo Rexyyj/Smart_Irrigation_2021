@@ -229,7 +229,7 @@ def get_sensor_data(db_conn, table, field_id, period, sensor_type = None, unix_t
 # ----------------------------------------------------------------------------------------------------------------------
 
 # inserts all the data included in a single LoRa payload
-def insert_sensor_data(db_conn, data_dict, unix_tmp = False, DEBUG = False):
+def insert_sensor_data(db_conn, data_dict, unix_tmp=False, DEBUG = False):
     """
     :param unix_tmp: flag to specify if timestamp in payload is a unix tmp
     :param db_conn:
@@ -297,7 +297,7 @@ def insert_sensor_data(db_conn, data_dict, unix_tmp = False, DEBUG = False):
     return 1
 
 
-def insert_ET_value(db_conn, data_dict, unix_tmp = False):
+def insert_ET_value(db_conn, data_dict, unix_tmp=False):
     """
 
     :param unix_tmp: flag to specify if timestamp in payload is a unix tmp
@@ -338,6 +338,30 @@ def insert_ET_value(db_conn, data_dict, unix_tmp = False):
     return 1
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# LOGIN SYSTEM
+# ----------------------------------------------------------------------------------------------------------------------
+
+def get_credentials(db_conn, usn):
+
+    query = f"SELECT * FROM login_data " \
+            f"WHERE email = %s"
+    data = (usn,)
+    db_cursor = db_conn.cursor()
+
+    try:
+        if DEBUG:
+            print("sending query: ", query)
+        db_cursor.execute(query, data)
+    except:
+        print(f"Error handling query: {query}, data: {data}")
+        raise Exception
+
+    result = db_cursor.fetchall()
+    db_cursor.close()
+    return result
+
+
 if __name__ == "__main__":
     config_file = "config.json"
 
@@ -358,7 +382,9 @@ if __name__ == "__main__":
     DB_host = config["DB_host"]
     DB_port = config["DB_port"]
     db_connection = connect(DB_usn, DB_psw, DB_name, DB_host, DB_port)
-    db_cursor = db_connection.cursor()
+
+    data = get_credentials(db_connection, 'farmer@smartirrigation.com')
+    print(data)
 
     # d1 = datetime(2022, 3, 25)
     # d2 = datetime(2022, 3, 26)
