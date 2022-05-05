@@ -9,10 +9,11 @@ import json
 class Telegrambot():
 
     def __init__(self, confAddr):
+        print(confAddr)
         try:
             self.conf = json.load(open(confAddr))
         except:
-            print("Configuration file not found")
+            print("Configuration file not found or load failed")
             exit()
         self.token = self.conf["token"]
         self.bot = telepot.Bot(self.token)
@@ -26,7 +27,7 @@ class Telegrambot():
     def start(self):
         self.client.start()
         self.client.mySubscribe(self.alertTopic)
-        MessageLoop(self.bot, self.msg_handler).run_as_thread()
+        # MessageLoop(self.bot, self.msg_handler).run_as_thread()
 
     def stop(self):
         self.workingStatus = False
@@ -36,10 +37,10 @@ class Telegrambot():
         self.bot.sendMessage(
             text='Welcome to the Smart_irrigation!')
 
-    def notify(self, topic, msg):
-        msg = json.loads(msg)
+    def notify(self, payload):
+        payload = json.loads(payload)
         info = "Attention please!The soil moisture is below 10%! Please irrigate from user interface."
-        print(msg)
+        print(payload)
         self.bot.sendMessage(info)
 
 
