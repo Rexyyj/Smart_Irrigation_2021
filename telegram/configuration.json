@@ -1,5 +1,4 @@
 {
-    "token": "5043536991:AAHL6UB6-ZS3bvj5C-LnODMeENuuOm6vAEg",
     "message": ["Bad condition occurs!"],
     "serviceId": "Smart_irrigationbot",
     "broker": "test.mosquitto.org",
