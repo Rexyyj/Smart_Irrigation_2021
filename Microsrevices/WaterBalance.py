@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # print(DATE)
     # print(ETvalue)
     Service3 = WaterBalance("DB_config.json")
-    Service3.Initialday()
+    #Service3.Initialday()
     HOUR = 6
     Excuted = 0
     while True:
