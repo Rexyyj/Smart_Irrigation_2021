@@ -13,7 +13,7 @@ class WaterBalance:
 
     def Initialday(self):
         #Create data for the first day
-        Today = datetime.now().date() - timedelta(days=1)
+        Today = datetime.now().date() # - timedelta(days=1)
 
         my_DB = DBConnector(self.DBconf)
         my_DB.CreateDailyData(Today, 0)
