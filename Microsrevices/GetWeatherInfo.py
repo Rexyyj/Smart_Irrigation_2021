@@ -13,11 +13,12 @@ class WeatherInfo():
         self.weather = {}
 
     def getweather(self):
+        # can extend with other weather forecast provider
         if self.ServiceName == 'openweathermap':
             latitude = '&lat=' + str(self.Lat)
             longitude = '&lon=' + str(self.Lon)
             auth = '&appid=' + self.Key
-            uri =  'https://api.openweathermap.org/data/2.5/onecall?exclude=current,minutely,hourly&units=metric'
+            uri = 'https://api.openweathermap.org/data/2.5/onecall?exclude=current,minutely,hourly&units=metric'
             URL = uri + latitude + longitude + auth
             reply = requests.get(URL).text
             self.weather = json.loads(reply)
@@ -26,9 +27,9 @@ class WeatherInfo():
     def getrain_today(self):
         self.getweather()
         rain = 0
-        tomorrow = self.weather['daily'][0]
+        today = self.weather['daily'][0]
         try:
-            rain = tomorrow['rain']
+            rain = today['rain']
         except:
             pass
         return rain

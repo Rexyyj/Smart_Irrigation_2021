@@ -3,7 +3,7 @@
 import math
 import time
 
-class measurement(object):
+class ETmeasurement(object):
     def __init__(self, Tmin, Tmax, RHmin, RHmax, atm_pressure, Rs, wind, day, latitude=45.07, altitude=300):
         self.Tmin = Tmin
         self.Tmax = Tmax

@@ -1,4 +1,4 @@
 {
-  "threshold": 50,
-  "irrigation_EM": 5
+  "threshold": 100,
+  "irrigation_EM": 2
 }
