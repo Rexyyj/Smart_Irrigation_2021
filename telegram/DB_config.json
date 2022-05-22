@@ -1,0 +1,8 @@
+{
+  "host": "80.210.98.95",
+  "database": "new_db",
+  "user":"root",
+  "password":"Qwertykk.22!",
+  "port": 6606,
+  "raise_on_warnings": true
+}
