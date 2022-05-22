@@ -22,8 +22,17 @@ class Monitoring:
     def Check(self, area = 10.0):
         threshold = self.conf['threshold']
         my_DB = DBConnector(self.DBconfig)
-        moisture = my_DB.QueryMoisture()
-        moisture2 = my_DB.QueryMoisture_multi()[1]
+        moisture = 6
+        moisture2 = 6
+        try:
+            moisture = my_DB.QueryMoisture()
+        except:
+            print("Error with reading moisture from single layer")
+        try:
+            moisture2 = my_DB.QueryMoisture_multi()[1]
+        except:
+            print("Error with reading moisture from multi layer")
+
         if moisture <= threshold or moisture2 <= threshold:
             #   Execute Irrigation
             IrriAmount_Str = str(int(self.conf['irrigation_EM']*area*0.1))
