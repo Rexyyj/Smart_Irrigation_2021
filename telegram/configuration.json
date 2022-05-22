@@ -1,0 +1,7 @@
+{
+    "message": ["Bad condition occurs!"],
+    "serviceId": "Smart_irrigationbot",
+    "broker": "test.mosquitto.org",
+    "port": 1883,
+    "alerttopic":"/Polito/irrigation/alertTopic"
+}
