@@ -13,7 +13,7 @@ class WaterBalance:
 
     def Initialday(self):
         #Create data for the first day
-        Today = datetime.now().date() - timedelta(days=1)
+        Today = datetime.now().date() # - timedelta(days=1)
 
         my_DB = DBConnector(self.DBconf)
         my_DB.CreateDailyData(Today, 0)
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # print(DATE)
     # print(ETvalue)
     Service3 = WaterBalance("DB_config.json")
-    #Service3.Initialday()
+    Service3.Initialday()
     HOUR = 6
     Excuted = 0
     while True:
