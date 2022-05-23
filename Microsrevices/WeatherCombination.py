@@ -6,7 +6,7 @@ from GetWeatherInfo import WeatherInfo
 
 import logging
 LOG_FILENAME = './log/service1.log'
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, datefmt='"%Y-%m-%d %H:%M:%S"')
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
 
 class DailyIrrigation:
 
@@ -44,7 +44,7 @@ class DailyIrrigation:
         else:
             Kc = self.cropInfo["value"]['mid']
             phase = "middle"
-        log_info = "Plant has grown for " + str(num_of_days) + " days, in " + phase + " phase, Kc value is"+str(Kc)
+        log_info= "Plant has grown for " + str(num_of_days) + " days, in " + phase + " phase, Kc value is"+str(Kc)
         logging.info(log_info)
         # Combine weather forecast and calculate expected irrigation amount
         # IrriAmount = self.ET + self.residual - self.rain
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     AREA = 15*15*3.15*2
 
     Service1 = DailyIrrigation("MQTT.json", "DB_config.json")
-    HOUR = 1
+    HOUR = 8
     Irrigated = 0
     while True:
         hour = datetime.now().hour

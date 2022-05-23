@@ -6,7 +6,7 @@ from DatabaseConnection import *
 import paho.mqtt.publish as publish
 import logging
 LOG_FILENAME = './log/service2.log'
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, datefmt='"%Y-%m-%d %H:%M:%S"')
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
 class Monitoring:
 
     def __init__(self, DBconfig, MQTTconf, MonitorConf = "MonitorConf.json"):
