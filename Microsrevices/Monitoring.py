@@ -4,7 +4,9 @@ import base64
 import time
 from DatabaseConnection import *
 import paho.mqtt.publish as publish
-
+import logging
+LOG_FILENAME = './log/service2.log'
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, datefmt='"%Y-%m-%d %H:%M:%S"')
 class Monitoring:
 
     def __init__(self, DBconfig, MQTTconf, MonitorConf = "MonitorConf.json"):
@@ -26,25 +28,26 @@ class Monitoring:
         moisture2 = 6
         try:
             moisture = my_DB.QueryMoisture()
-        except:
-            print("Error with reading moisture from single layer")
+        except Exception as e:
+            logging.info("Error with reading moisture from single layer")
+            logging.exception(e)
         try:
             moisture2 = my_DB.QueryMoisture_multi()[1]
         except:
-            print("Error with reading moisture from multi layer")
+            logging.info("Error with reading moisture from single layer")
+            logging.exception(e)
 
         if moisture <= threshold or moisture2 <= threshold:
             #   Execute Irrigation
             IrriAmount_Str = str(int(self.conf['irrigation_EM']*area*0.1))
-            print("Emergency irrigation of", datetime.now(), " Amount is ", IrriAmount_Str, " mL")
+            irri_info = "Emergency irrigation of " + str(datetime.now()) + " Amount is " + IrriAmount_Str, " mL"
+            logging.info(irri_info)
             base64EncodedStr = base64.b64encode(IrriAmount_Str.encode('utf-8'))
             payload_raw = ""
             for i in base64EncodedStr:
                 payload_raw += chr(i)
-            print(payload_raw)
             payload_dict = {"downlinks": [{"f_port": 15, "frm_payload": payload_raw, "priority": "NORMAL"}]}
             payload = json.dumps(payload_dict)
-            print(payload)
             publish.single(self.topic,
                            payload,
                            hostname=self.broker, port=self.port,
@@ -58,12 +61,13 @@ class Monitoring:
                 excuted = data['Irrigated']
                 excuted += self.conf['irrigation_EM']
                 my_DB.UpdateIrrigation(excuted)
-                print("Irrigation finished, update amount in database")
+                logging.info("Irrigation finished, update amount in database")
             else:
                 excuted = self.conf['irrigation_EM']
                 yesterday = my_DB.QueryDailyData(today-timedelta(days=1))
                 days = yesterday['Day'] + 1
                 my_DB.CreateDailyData(date=today,irrigated=excuted,day=days)
+                logging.info("Irrigation finished, no data in database, create a new record")
 
         else:
             pass
@@ -72,5 +76,8 @@ if __name__ == '__main__':
     Service2 = Monitoring("DB_config.json", "MQTT.json")
     AREA = 15*15*3.15*2
     while True:
-        Service2.Check(area=AREA)
+        try:
+            Service2.Check(area=AREA)
+        except Exception as e:
+            logging.exception(e)
         time.sleep(3600)

@@ -88,7 +88,6 @@ class DBConnector:
         cursor.execute(add_dailyData, new_dailyData)
         self.my_db.commit()
         cursor.close()
-        print("Successfully created data for ", date)
 
     def UpdateResidual(self, LastDay, actual, residual):
         # Argument could be removed
