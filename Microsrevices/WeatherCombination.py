@@ -4,6 +4,10 @@ import base64
 import paho.mqtt.publish as publish
 from GetWeatherInfo import WeatherInfo
 
+import logging
+LOG_FILENAME = './log/service1.log'
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+
 class DailyIrrigation:
 
     def __init__(self, MQTTconf, DBconf, Fieldconf='field.json'):
@@ -19,6 +23,7 @@ class DailyIrrigation:
         self.cropInfo = json.load(open('crops.json'))[fieldconf['crop']]
 
 
+
     def DailyAmount(self, area=10.0):
         my_DB = DBConnector(self.DBconf)
         Today = datetime.now().date()
@@ -28,7 +33,10 @@ class DailyIrrigation:
         num_of_days = DailyData["Day"] + 1
         # get crop coefficient
         if num_of_days <= self.cropInfo["stage"][0]:
-            Kc = self.cropInfo["value"]['ini']
+            # In the initial phase, the Kc value increase linearly
+            Kc_ini = self.cropInfo["value"]['ini']
+            Kc_mid = self.cropInfo["value"]['mid']
+            Kc = Kc_ini + (Kc_mid-Kc_ini) / self.cropInfo["stage"][0] * num_of_days
             phase = "initial"
         elif num_of_days > self.cropInfo["stage"][1]:
             Kc = self.cropInfo["value"]['end']
@@ -36,7 +44,8 @@ class DailyIrrigation:
         else:
             Kc = self.cropInfo["value"]['mid']
             phase = "middle"
-        print("The plant has grown for ",num_of_days, " days, in the ", phase, " phase, Kc value is", Kc)
+        log_info= "Plant has grown for " + str(num_of_days) + " days, in " + phase + " phase, Kc value is"+str(Kc)
+        logging.info(log_info)
         # Combine weather forecast and calculate expected irrigation amount
         # IrriAmount = self.ET + self.residual - self.rain
 
@@ -52,15 +61,14 @@ class DailyIrrigation:
                 Requirement =0
         # Send command to LoRa device
         IrriAmount_Str = str(int(IrriAmount*area*0.1))
-        print("Daily irrigation of", Today, " Amount is ", IrriAmount_Str, " mL")
+        irri_info = "Daily irrigation of" + str(Today) + " Amount is " + IrriAmount_Str + " mL"
+        logging.info(irri_info)
         base64EncodedStr = base64.b64encode(IrriAmount_Str.encode('utf-8'))
         payload_raw = ""
         for i in base64EncodedStr:
             payload_raw+=chr(i)
-        print(payload_raw)
         payload_dict = {"downlinks":[{"f_port": 15,"frm_payload":payload_raw,"priority": "NORMAL"}]}
         payload = json.dumps(payload_dict)
-        print(payload)
         publish.single(self.topic,
                        payload,
                        hostname=self.broker, port=self.port,
@@ -70,10 +78,13 @@ class DailyIrrigation:
         data = my_DB.QueryDailyData(Today)
         if data is None:
             my_DB.CreateDailyData(date=Today, need=Requirement, forecast=ForecastRain, irrigated=IrriAmount, day=num_of_days)
+            update_info = "Daily data for" + str(Today) + " created"
+            logging.info(update_info)
         else:
             Excuted = IrriAmount + data['Irrigated']
             my_DB.UpdateDailyData(Excuted, Requirement, ForecastRain, num_of_days)
-            print("Daily data updated")
+            update_info = "Daily data for" + str(Today) + " updated"
+            logging.info(update_info)
 
         return IrriAmount
 
@@ -88,8 +99,13 @@ if __name__ == '__main__':
         hour = datetime.now().hour
         if hour == HOUR:
             if Irrigated == 0:
-                Service1.DailyAmount(area = AREA)
-                Irrigated = 1
+                try:
+
+                    Service1.DailyAmount(area = AREA)
+                    Irrigated = 1
+
+                except Exception as e:
+                    logging.exception(e)
             else:
                 pass
         else:

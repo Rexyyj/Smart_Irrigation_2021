@@ -1,7 +1,7 @@
 from Et0 import *
 from DatabaseConnection import *
 from PreProcess import *
-
+import logging
 class WaterBalance:
 
     def __init__(self, DBconfig, Fieldconf = "field.json"):
@@ -73,8 +73,9 @@ if __name__ == '__main__':
     # TEST_DB.UpdateET(LastDay=DATE, ET=ETvalue)
     # print(DATE)
     # print(ETvalue)
+
     Service3 = WaterBalance("DB_config.json")
-    Service3.Initialday()
+    ##Service3.Initialday()
     HOUR = 6
     Excuted = 0
     while True:

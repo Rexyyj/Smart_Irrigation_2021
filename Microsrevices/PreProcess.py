@@ -45,7 +45,7 @@ class ConvertSensorData:
         pressure = np.mean(list_values)
         return pressure
 
-    def Getradiation(self,interval=300):
+    def Getradiation(self,interval=900):
         measurements = self.My_DB.QuerySensorData("7")
         Radiation = 0
         for value in measurements:
@@ -82,6 +82,6 @@ class ConvertSensorData:
 
 if __name__ == '__main__':
     TEST = ConvertSensorData("DB_config.json")
-    X = TEST.GetTemperature()#ComputeDailyWeather()
+    X = TEST.Getradiation()#ComputeDailyWeather()
     print(X)
     pass
