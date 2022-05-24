@@ -5,11 +5,13 @@ import time
 from DatabaseConnection import *
 import paho.mqtt.publish as publish
 import logging
+from daemonize import Daemonize
+pid_monitor="./pid/monitor.pid"
 LOG_FILENAME = './log/service2.log'
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+# logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
 class Monitoring:
 
-    def __init__(self, DBconfig, MQTTconf, MonitorConf = "MonitorConf.json"):
+    def __init__(self, DBconfig, MQTTconf,area,logger,MonitorConf = "MonitorConf.json"):
         MQTTconf = json.load(open(MQTTconf))
         self.broker = MQTTconf['broker']
         self.port = MQTTconf['port']
@@ -19,9 +21,21 @@ class Monitoring:
 
         self.DBconfig = DBconfig
         self.conf = json.load(open(MonitorConf))
+        self.area = area
+        self.logger =logger
+       
+        ## logger
+        #logging.basicConfig(level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+        #self.logger = logging.getLogger(__name__)
+        #fh = logging.FileHandler(LOG_FILENAME, "w")
+        #fh.setLevel(logging.DEBUG)
+        #logger.addHandler(fh)
+        #self.keep_fds = [fh.stream.fileno()]
+        
 
 
-    def Check(self, area = 10.0):
+    def Check(self):
+        logger= self.logger
         threshold = self.conf['threshold']
         my_DB = DBConnector(self.DBconfig)
         moisture = 6
@@ -29,19 +43,19 @@ class Monitoring:
         try:
             moisture = my_DB.QueryMoisture()
         except Exception as e:
-            logging.info("Error with reading moisture from single layer")
-            logging.exception(e)
+            logger.info("Error with reading moisture from single layer")
+            logger.exception(e)
         try:
             moisture2 = my_DB.QueryMoisture_multi()[1]
         except:
-            logging.info("Error with reading moisture from single layer")
-            logging.exception(e)
+            logger.info("Error with reading moisture from single layer")
+            logger.exception(e)
 
         if moisture <= threshold or moisture2 <= threshold:
             #   Execute Irrigation
-            IrriAmount_Str = str(int(self.conf['irrigation_EM']*area*0.1))
+            IrriAmount_Str = str(int(self.conf['irrigation_EM']*self.area*0.1))
             irri_info = "Emergency irrigation of " + str(datetime.now()) + " Amount is " + IrriAmount_Str, " mL"
-            logging.info(irri_info)
+            logger.info(irri_info)
             base64EncodedStr = base64.b64encode(IrriAmount_Str.encode('utf-8'))
             payload_raw = ""
             for i in base64EncodedStr:
@@ -61,23 +75,41 @@ class Monitoring:
                 excuted = data['Irrigated']
                 excuted += self.conf['irrigation_EM']
                 my_DB.UpdateIrrigation(excuted)
-                logging.info("Irrigation finished, update amount in database")
+                logger.info("Irrigation finished, update amount in database")
             else:
                 excuted = self.conf['irrigation_EM']
                 yesterday = my_DB.QueryDailyData(today-timedelta(days=1))
                 days = yesterday['Day'] + 1
                 my_DB.CreateDailyData(date=today,irrigated=excuted,day=days)
-                logging.info("Irrigation finished, no data in database, create a new record")
+                logger.info("Irrigation finished, no data in database, create a new record")
 
         else:
             pass
 
+    def main(self):
+        while True:
+            try:
+                self.Check()
+                self.logger.info("Working...")
+            except Exception as e:
+                self.logger.exception(e)
+            time.sleep(3600)
+
+
 if __name__ == '__main__':
-    Service2 = Monitoring("DB_config.json", "MQTT.json")
+    # Configure logger
+    formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(LOG_FILENAME, "w")
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    keep_fds = [fh.stream.fileno()]
+    logger.info("Starting service...")
+    
     AREA = 15*15*3.15*2
-    while True:
-        try:
-            Service2.Check(area=AREA)
-        except Exception as e:
-            logging.exception(e)
-        time.sleep(3600)
+    Service2 = Monitoring("/home/rex/Smart_Irrigation_2021/Microsrevices/DB_config.json", "MQTT.json",AREA,logger)
+
+    daemon = Daemonize(app="SI_monitor", pid=pid_monitor, action=Service2.main,keep_fds=keep_fds,logger=logger)
+    daemon.start()

@@ -5,12 +5,13 @@ import paho.mqtt.publish as publish
 from GetWeatherInfo import WeatherInfo
 
 import logging
+from daemonize import Daemonize
+pid_weather="./pid/weather.pid"
 LOG_FILENAME = './log/service1.log'
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
 
 class DailyIrrigation:
 
-    def __init__(self, MQTTconf, DBconf, Fieldconf='field.json'):
+    def __init__(self, MQTTconf, DBconf,area,logger, Fieldconf='field.json'):
         MQTTconf = json.load(open(MQTTconf))
         self.broker = MQTTconf['broker']
         self.port = MQTTconf['port']
@@ -21,10 +22,11 @@ class DailyIrrigation:
         fieldconf = json.load(open(Fieldconf))
         self.field = fieldconf['field']
         self.cropInfo = json.load(open('crops.json'))[fieldconf['crop']]
+        self.area=area
+        self.logger=logger
 
 
-
-    def DailyAmount(self, area=10.0):
+    def DailyAmount(self):
         my_DB = DBConnector(self.DBconf)
         Today = datetime.now().date()
         Last_Day = Today - timedelta(days=1)
@@ -45,7 +47,7 @@ class DailyIrrigation:
             Kc = self.cropInfo["value"]['mid']
             phase = "middle"
         log_info= "Plant has grown for " + str(num_of_days) + " days, in " + phase + " phase, Kc value is"+str(Kc)
-        logging.info(log_info)
+        self.logger.info(log_info)
         # Combine weather forecast and calculate expected irrigation amount
         # IrriAmount = self.ET + self.residual - self.rain
 
@@ -60,9 +62,9 @@ class DailyIrrigation:
             if Requirement < 0:
                 Requirement =0
         # Send command to LoRa device
-        IrriAmount_Str = str(int(IrriAmount*area*0.1))
+        IrriAmount_Str = str(int(IrriAmount*self.area*0.1))
         irri_info = "Daily irrigation of" + str(Today) + " Amount is " + IrriAmount_Str + " mL"
-        logging.info(irri_info)
+        self.logger.info(irri_info)
         base64EncodedStr = base64.b64encode(IrriAmount_Str.encode('utf-8'))
         payload_raw = ""
         for i in base64EncodedStr:
@@ -79,36 +81,54 @@ class DailyIrrigation:
         if data is None:
             my_DB.CreateDailyData(date=Today, need=Requirement, forecast=ForecastRain, irrigated=IrriAmount, day=num_of_days)
             update_info = "Daily data for" + str(Today) + " created"
-            logging.info(update_info)
+            self.logger.info(update_info)
         else:
             Excuted = IrriAmount + data['Irrigated']
             my_DB.UpdateDailyData(Excuted, Requirement, ForecastRain, num_of_days)
             update_info = "Daily data for" + str(Today) + " updated"
-            logging.info(update_info)
+            self.logger.info(update_info)
 
         return IrriAmount
 
 
-if __name__ == '__main__':
-    AREA = 15*15*3.15*2
-
-    Service1 = DailyIrrigation("MQTT.json", "DB_config.json")
-    HOUR = 8
-    Irrigated = 0
-    while True:
-        hour = datetime.now().hour
-        if hour == HOUR:
-            if Irrigated == 0:
-                try:
-
-                    Service1.DailyAmount(area = AREA)
-                    Irrigated = 1
-
-                except Exception as e:
-                    logging.exception(e)
+    def main(self):
+        HOUR = 8
+        Irrigated = 0
+        while True:
+            hour = datetime.now().hour
+            self.logger.info("System checking...")
+            if hour == HOUR:
+                if Irrigated == 0:
+                    try:
+                        Service1.DailyAmount()
+                        Irrigated = 1
+                        self.logger.info("Working...")
+                    except Exception as e:
+                        self.logger.exception(e)
+                else:
+                    pass
             else:
-                pass
-        else:
-            Irrigated = 0
-        time.sleep(300)
+                Irrigated = 0
+            time.sleep(300)
 
+
+
+if __name__ == '__main__':
+    
+    # Configure logger
+    formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(LOG_FILENAME, "w")
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    keep_fds = [fh.stream.fileno()]
+    logger.info("Starting service...")
+
+
+    AREA = 15*15*3.15*2
+    Service1 = DailyIrrigation("MQTT.json", "/home/rex/Smart_Irrigation_2021/Microsrevices/DB_config.json",AREA,logger)
+
+    daemon = Daemonize(app="SI_weather", pid=pid_weather, action=Service1.main,keep_fds=keep_fds,logger=logger)
+    daemon.start()

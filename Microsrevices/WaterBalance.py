@@ -2,14 +2,19 @@ from Et0 import *
 from DatabaseConnection import *
 from PreProcess import *
 import logging
+from daemonize import Daemonize
+pid_monitor="./pid/water.pid"
+LOG_FILENAME = './log/service3.log'
+
 class WaterBalance:
 
-    def __init__(self, DBconfig, Fieldconf = "field.json"):
+    def __init__(self, DBconfig,logger, Fieldconf = "field.json"):
         self.DBconf = DBconfig
         fieldconf = json.load(open(Fieldconf))
         self.field = fieldconf["field"]
         self.lat = fieldconf["latitude"]
         self.alt = fieldconf["altitude"]
+        self.logger = logger
 
     def Initialday(self):
         #Create data for the first day
@@ -59,6 +64,22 @@ class WaterBalance:
             residual = data_Y["Need"] - data_Y["Irrigated"] - actual_rain
         my_DB.UpdateResidual(Last_Day, actual_rain, residual)
 
+    def main(self):
+        HOUR = 6
+        Excuted = 0
+        while True:
+            self.logger.info("System checking...")
+            hour = datetime.now().hour
+            if hour == HOUR:
+                if Excuted == 0:
+                    Service3.BalanceCalculation()
+                    Excuted = 1
+                    self.logger.info("Working...")
+                else:
+                    pass
+            else:
+                Excuted = 0
+            time.sleep(300)
 
 if __name__ == '__main__':
     # TEST = ConvertSensorData("DB_config.json")
@@ -74,19 +95,24 @@ if __name__ == '__main__':
     # print(DATE)
     # print(ETvalue)
 
-    Service3 = WaterBalance("DB_config.json")
-    ##Service3.Initialday()
-    HOUR = 6
-    Excuted = 0
-    while True:
-        hour = datetime.now().hour
-        if hour == HOUR:
-            if Excuted == 0:
-                Service3.BalanceCalculation()
-                Excuted = 1
-            else:
-                pass
-        else:
-            Excuted = 0
-        time.sleep(300)
+
+    # Configure logger
+    formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(LOG_FILENAME, "w")
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    keep_fds = [fh.stream.fileno()]
+    logger.info("Starting service...")
+
+
+
+    Service3 = WaterBalance("/home/rex/Smart_Irrigation_2021/Microsrevices/DB_config.json",logger)
+
+
+    daemon = Daemonize(app="SI_monitor", pid=pid_monitor, action=Service3.main,keep_fds=keep_fds,logger=logger)
+    daemon.start()
+
 
