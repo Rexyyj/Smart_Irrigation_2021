@@ -163,10 +163,8 @@ class DBConnector:
         return Result
 
     def QueryMoisture(self):
-
-        today = datetime.now().date()
-        start = datetime.combine(today, datetime.min.time())
-        end = start + timedelta(days=1)
+        end = datetime.now()
+        start = end - timedelta(hours= 5)
 
         cursor = self.my_db.cursor(dictionary=True)
         query = ("SELECT * FROM single_value_sensor "
