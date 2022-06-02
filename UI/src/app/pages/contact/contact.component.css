@@ -1,0 +1,148 @@
+.tit h1 {
+  font-size: 40px !important;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 2px;
+  margin-top: 80px;
+}
+
+/* The sidebar menu */
+#main {
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar {
+  height: 100%;
+  /* 100% Full-height */
+  width: 0;
+  /* 0 width - change this with JavaScript */
+  position: fixed;
+  /* Stay in place */
+  z-index: 100;
+  /* Stay on top */
+  top: 0;
+  left: 0;
+  background-color: #111;
+  /* Black*/
+  overflow-x: hidden;
+  /* Disable horizontal scroll */
+  padding-top: 60px;
+  /* Place content 60px from the top */
+  transition: 0.5s;
+  /* 0.5 second transition effect to slide in the sidebar */
+}
+
+/* The sidebar links */
+.sidebar a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #fffbfb;
+  display: block;
+  transition: 0.3s;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidebar a:hover {
+  color: #f1f1f1;
+}
+
+/* Position and style the close button (top right corner) */
+.sidebar .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
+
+/* The button used to open the sidebar */
+.openbtn {
+  font-size: 20px;
+  cursor: pointer;
+  background-color: rgb(0, 105, 112);
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  min-width: 140px;
+  border-radius: 0 50px 50px 0;
+}
+
+.openbtn:hover {
+  background-color: #444;
+}
+
+.trans {
+  background-color: rgb(0, 105, 112);
+}
+
+
+/* page */
+.main {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgb(53, 53, 53);
+  z-index: 1;
+}
+.main h1{
+  text-align: center;
+  color: #fff;
+  margin-top: 50px;
+  
+}
+.main .wrap{
+    background-color: rgb(75, 75, 75);
+    width: 60%;
+    color: #fff;
+    margin: 200px auto;
+}
+.main .wrap .l{
+    position: relative;
+    height: 460px;
+    width: 60%;
+    background-image: url(../../../assets/images/bg_contact.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+.main .wrap .l .text{
+    background-color: rgba(19, 19, 19, 0.39);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    padding:  20px 35px;
+}
+.main .wrap .r .info{
+      margin-top: 150px; 
+      margin-left: 70px; 
+      font-size: 20px;
+}
+@media screen and (max-width: 414px) {
+  .main{
+    overflow: scroll;
+    /* z-index: 100; */
+  }
+  .main .wrap{
+    width: 90%;
+    display: block;
+    margin-top: 100px;
+  }
+  .main .wrap>div{
+    width: 100% !important;
+  }
+  .main .wrap .l{
+    height: 380px;
+  }
+  .main .wrap .r {
+    padding-bottom: 50px;
+  }
+  .main .wrap .r .info{
+    margin-top: 50px;
+    margin-left: 30px;
+  }
+}

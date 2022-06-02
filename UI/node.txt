@@ -1,0 +1,12 @@
+https://github.com/mqttjs/MQTT.js#browser
+
+mqtt install
+
+npm install mqtt
+npm install browserify
+npm install tinyify
+
+#......
+cd node_modules/mqtt/
+npm install .
+npx browserify mqtt.js -s mqtt >browserMqtt.js
